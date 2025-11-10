@@ -542,8 +542,8 @@ def show_contract_tracker():
                 hovertemplate=f"Renewal Notice<br>{contract_info['renewal_notice_days']} days before expiry<extra></extra>"
             ))
         
-        # Add today marker
-        fig.add_vline(x=today, line_dash="dash", line_color="red", 
+        # Add today marker (convert to pandas Timestamp for plotly)
+        fig.add_vline(x=pd.Timestamp(today), line_dash="dash", line_color="red", 
                      annotation_text="Today", annotation_position="top")
         
         fig.update_layout(
