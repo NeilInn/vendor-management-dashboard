@@ -493,10 +493,11 @@ def show_vendor_directory():
                         if drive_manager.is_configured():
                             with st.spinner("Creating Google Drive folder structure..."):
                                 try:
-                                    # Create vendor folder structure
+                                    # Create vendor folder structure in your specific Drive folder
+                                    # Parent folder: https://drive.google.com/drive/folders/1F_WoeeYSN-Oo550x1VNEcHygHOwgY6ee
                                     folder_result = drive_manager.create_project_folder_structure(
                                         new_vendor_name,
-                                        parent_folder_id=None
+                                        parent_folder_id="1F_WoeeYSN-Oo550x1VNEcHygHOwgY6ee"
                                     )
                                     
                                     if folder_result:
@@ -851,22 +852,49 @@ def show_project_coordination():
         
         if st.button("🚀 Create Google Drive Folder Structure", type="primary"):
             if project_name_gdrive:
-                st.success(f"✅ Folder structure would be created for: **{project_name_gdrive}**")
-                st.markdown("""
-                **Next Steps to Enable:**
-                1. Set up Google Drive API credentials (see `GOOGLE_DRIVE_SETUP.md`)
-                2. Place `credentials.json` in the project directory
-                3. Run authentication flow on first use
-                4. Folder links will be automatically added to project records
-                """)
-                st.code(f"""
+                # Check if google drive is configured
+                from google_drive import get_drive_manager
+                drive_manager = get_drive_manager()
+                
+                if drive_manager.is_configured():
+                    with st.spinner("Creating Google Drive folder structure..."):
+                        try:
+                            # Create project folder structure in your specific Drive folder
+                            folder_result = drive_manager.create_project_folder_structure(
+                                project_name_gdrive,
+                                parent_folder_id="1F_WoeeYSN-Oo550x1VNEcHygHOwgY6ee"
+                            )
+                            
+                            if folder_result:
+                                st.success(f"✅ Google Drive folders created for: **{project_name_gdrive}**")
+                                st.markdown(f"📂 [Open Project Folder]({folder_result['main_folder_link']})")
+                                
+                                # Show created subfolders
+                                st.markdown("**Created subfolders:**")
+                                for folder_name in folder_result['subfolders'].keys():
+                                    st.markdown(f"  - ✅ {folder_name}/")
+                            else:
+                                st.warning("Could not create Google Drive folders. Please check your credentials.")
+                        except Exception as e:
+                            st.error(f"Error creating folders: {str(e)}")
+                else:
+                    st.warning("""
+                    ⚠️ **Google Drive not configured**
+                    
+                    **Next Steps to Enable:**
+                    1. Set up Google Drive API credentials (see `GOOGLE_DRIVE_SETUP.md` below)
+                    2. Place `credentials.json` in the project directory
+                    3. Run authentication flow on first use
+                    4. Folders will be created in: https://drive.google.com/drive/folders/1F_WoeeYSN-Oo550x1VNEcHygHOwgY6ee
+                    """)
+                    st.code(f"""
 # Folder structure that will be created:
 📂 {project_name_gdrive}/
 ├── 📁 Contracts/
 ├── 📁 Deliverables/
 ├── 📁 Meeting Notes/
 └── 📁 Documentation/
-                """, language="text")
+                    """, language="text")
             else:
                 st.warning("Please enter a project name")
     
