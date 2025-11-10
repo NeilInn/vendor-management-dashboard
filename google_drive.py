@@ -13,7 +13,8 @@ from googleapiclient.errors import HttpError
 
 
 # If modifying these scopes, delete the file token.pickle.
-SCOPES = ['https://www.googleapis.com/auth/drive.file']
+# Using drive scope to allow access to user's existing folders
+SCOPES = ['https://www.googleapis.com/auth/drive']
 
 
 class GoogleDriveManager:
@@ -120,35 +121,50 @@ class GoogleDriveManager:
             Dictionary with main folder info and subfolders, or None if failed
         """
         if not self.authenticated:
+            print("Not authenticated, attempting to authenticate...")
             if not self.authenticate():
+                print("Authentication failed")
                 return None
         
         try:
+            print(f"Creating main folder: {project_name}")
+            print(f"Parent folder ID: {parent_folder_id}")
+            
             # Create main project folder
             main_folder = self.create_folder(project_name, parent_folder_id)
             
             if not main_folder:
+                print("Failed to create main folder")
                 return None
             
             main_folder_id = main_folder['folder_id']
+            print(f"Main folder created with ID: {main_folder_id}")
             
             # Create subfolders
             subfolders = ['Contracts', 'Deliverables', 'Meeting Notes', 'Documentation']
             subfolder_info = {}
             
             for subfolder_name in subfolders:
+                print(f"Creating subfolder: {subfolder_name}")
                 subfolder = self.create_folder(subfolder_name, main_folder_id)
                 if subfolder:
                     subfolder_info[subfolder_name] = subfolder
+                    print(f"  ✓ Created {subfolder_name}")
+                else:
+                    print(f"  ✗ Failed to create {subfolder_name}")
             
-            return {
+            result = {
                 'main_folder_id': main_folder_id,
                 'main_folder_link': main_folder['folder_link'],
                 'subfolders': subfolder_info
             }
+            print(f"Folder structure created successfully")
+            return result
             
         except Exception as e:
             print(f"Error creating project structure: {e}")
+            import traceback
+            traceback.print_exc()
             return None
     
     def is_configured(self) -> bool:
