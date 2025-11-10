@@ -491,48 +491,61 @@ def show_contract_tracker():
     # Renewal Timeline Visualization
     st.subheader("Contract Renewal Timeline")
     
+    # Get active contracts from the ORIGINAL filtered_contracts before any formatting
     active_contracts = filtered_contracts[filtered_contracts['status'] == 'Active'].copy()
     
     if len(active_contracts) > 0:
-        active_contracts['renewal_date'] = active_contracts.apply(
-            lambda x: x['end_date'] - timedelta(days=x['renewal_notice_days']), axis=1
-        )
-        
-        fig = go.Figure()
-        
-        for _, contract in active_contracts.iterrows():
-            # Contract period
-            fig.add_trace(go.Scatter(
-                x=[contract['start_date'], contract['end_date']],
-                y=[contract['vendor_name'], contract['vendor_name']],
-                mode='lines',
-                line=dict(color='royalblue', width=10),
-                showlegend=False,
-                hovertemplate=f"{contract['contract_id']}<br>Value: ${contract['contract_value']:,.0f}<extra></extra>"
-            ))
+        try:
+            active_contracts['renewal_date'] = active_contracts.apply(
+                lambda x: x['end_date'] - timedelta(days=int(x['renewal_notice_days'])), axis=1
+            )
             
-            # Renewal notice marker
-            fig.add_trace(go.Scatter(
-                x=[contract['renewal_date']],
-                y=[contract['vendor_name']],
-                mode='markers',
-                marker=dict(color='orange', size=12, symbol='diamond'),
-                showlegend=False,
-                hovertemplate=f"Renewal Notice<br>{contract['renewal_notice_days']} days before expiry<extra></extra>"
-            ))
-        
-        # Add today marker
-        fig.add_vline(x=today, line_dash="dash", line_color="red", 
-                     annotation_text="Today", annotation_position="top")
-        
-        fig.update_layout(
-            xaxis_title="Timeline",
-            yaxis_title="Vendor",
-            height=400,
-            hovermode='closest'
-        )
-        
-        st.plotly_chart(fig, use_container_width=True)
+            fig = go.Figure()
+            
+            for _, contract in active_contracts.iterrows():
+                # Get contract value as number
+                contract_val = contract['contract_value']
+                if isinstance(contract_val, str):
+                    contract_val = float(contract_val.replace('$', '').replace(',', ''))
+                
+                # Contract period
+                fig.add_trace(go.Scatter(
+                    x=[contract['start_date'], contract['end_date']],
+                    y=[contract['vendor_name'], contract['vendor_name']],
+                    mode='lines',
+                    line=dict(color='royalblue', width=10),
+                    showlegend=False,
+                    hovertemplate=f"{contract['contract_id']}<br>Value: ${contract_val:,.0f}<extra></extra>"
+                ))
+                
+                # Renewal notice marker
+                fig.add_trace(go.Scatter(
+                    x=[contract['renewal_date']],
+                    y=[contract['vendor_name']],
+                    mode='markers',
+                    marker=dict(color='orange', size=12, symbol='diamond'),
+                    showlegend=False,
+                    hovertemplate=f"Renewal Notice<br>{int(contract['renewal_notice_days'])} days before expiry<extra></extra>"
+                ))
+            
+            # Add today marker
+            fig.add_vline(x=today, line_dash="dash", line_color="red", 
+                         annotation_text="Today", annotation_position="top")
+            
+            fig.update_layout(
+                xaxis_title="Timeline",
+                yaxis_title="Vendor",
+                yaxis_title_text="Vendor",
+                height=400,
+                hovermode='closest',
+                showlegend=False
+            )
+            
+            st.plotly_chart(fig, use_container_width=True)
+            
+        except Exception as e:
+            st.error(f"Error displaying timeline: {str(e)}")
+            st.info("This can happen if the filter settings exclude all active contracts. Try adjusting your filters.")
     else:
         st.info("No active contracts to display in timeline. Adjust filters or add new contracts.")
     
