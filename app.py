@@ -416,11 +416,119 @@ def show_vendor_directory():
     st.markdown(f"**Showing {len(filtered_vendors)} of {len(vendors_df)} vendors**")
     st.markdown("---")
     
-    # Add New Vendor Button
-    if st.button("➕ Add New Vendor"):
-        st.info("Feature: Add new vendor form would appear here")
+    # Add New Vendor Section
+    st.markdown("---")
+    st.subheader("➕ Add New Vendor")
     
-    st.markdown("###")
+    with st.expander("Add New Vendor with Google Drive Integration"):
+        with st.form("add_vendor_form"):
+            st.markdown("**Vendor Information**")
+            col1, col2 = st.columns(2)
+            
+            with col1:
+                new_vendor_name = st.text_input("Vendor Name *", placeholder="e.g., DataPro Services")
+                new_contact_name = st.text_input("Contact Name", placeholder="e.g., John Smith")
+                new_email = st.text_input("Email", placeholder="contact@vendor.com")
+                new_phone = st.text_input("Phone", placeholder="555-0100")
+            
+            with col2:
+                new_location = st.text_input("Location", placeholder="e.g., San Francisco, CA")
+                new_vendor_type = st.selectbox("Vendor Type", 
+                    ["Data Annotation", "Software", "Infrastructure", "Support Services", "Staffing", "Other"])
+                new_status = st.selectbox("Status", ["Pending", "Onboarding", "Active", "Inactive"])
+                new_services = st.text_input("Primary Services", placeholder="e.g., Data labeling, QA services")
+            
+            new_notes = st.text_area("Notes", placeholder="Additional information about the vendor...")
+            
+            # Google Drive Integration
+            st.markdown("---")
+            st.markdown("**🗂️ Google Drive Folder Creation**")
+            create_gdrive_folder = st.checkbox("Create Google Drive folder for this vendor", value=True)
+            
+            if create_gdrive_folder:
+                st.info("""
+                📁 **This will create:**
+                - Vendor Name/
+                  - Contracts/
+                  - Documents/
+                  - Communications/
+                  - Invoices/
+                """)
+            
+            submitted = st.form_submit_button("Add Vendor", type="primary")
+            
+            if submitted:
+                if new_vendor_name:
+                    # Generate vendor ID
+                    new_vendor_id = f"VND{len(vendors_df) + 1:03d}"
+                    
+                    # Create new vendor
+                    new_vendor = pd.DataFrame({
+                        'vendor_id': [new_vendor_id],
+                        'vendor_name': [new_vendor_name],
+                        'contact_name': [new_contact_name],
+                        'contact_email': [new_email],
+                        'location': [new_location],
+                        'vendor_type': [new_vendor_type],
+                        'status': [new_status],
+                        'onboarding_stage': ['Contract Review' if new_status == 'Onboarding' else 'Completed' if new_status == 'Active' else 'Pending'],
+                        'date_added': [pd.Timestamp.now()],
+                        'primary_services': [new_services]
+                    })
+                    
+                    # Add to session state
+                    st.session_state.vendors = pd.concat([st.session_state.vendors, new_vendor], ignore_index=True)
+                    
+                    st.success(f"✅ Vendor '{new_vendor_name}' added successfully! (ID: {new_vendor_id})")
+                    
+                    # Create Google Drive folder if requested
+                    if create_gdrive_folder:
+                        st.markdown("---")
+                        st.markdown("**📁 Google Drive Folder Creation**")
+                        
+                        # Check if google drive is configured
+                        from google_drive import get_drive_manager
+                        drive_manager = get_drive_manager()
+                        
+                        if drive_manager.is_configured():
+                            with st.spinner("Creating Google Drive folder structure..."):
+                                try:
+                                    # Create vendor folder structure
+                                    folder_result = drive_manager.create_project_folder_structure(
+                                        new_vendor_name,
+                                        parent_folder_id=None
+                                    )
+                                    
+                                    if folder_result:
+                                        st.success(f"✅ Google Drive folders created!")
+                                        st.markdown(f"📂 [Open Vendor Folder]({folder_result['main_folder_link']})")
+                                        
+                                        # Show created subfolders
+                                        st.markdown("**Created subfolders:**")
+                                        for folder_name in folder_result['subfolders'].keys():
+                                            st.markdown(f"  - ✅ {folder_name}/")
+                                    else:
+                                        st.warning("Could not create Google Drive folders. Please check your credentials.")
+                                except Exception as e:
+                                    st.error(f"Error creating folders: {str(e)}")
+                        else:
+                            st.warning("""
+                            ⚠️ **Google Drive not configured**
+                            
+                            To enable folder creation:
+                            1. Follow instructions in `GOOGLE_DRIVE_SETUP.md`
+                            2. Add `credentials.json` to project directory
+                            3. Authenticate on first use
+                            
+                            For now, you can manually create the folder structure in Google Drive.
+                            """)
+                    
+                    st.balloons()
+                    st.info("Refresh the page to see the new vendor in the list!")
+                else:
+                    st.error("❌ Please provide at least a vendor name.")
+    
+    st.markdown("---")
     
     # Display vendors
     for _, vendor in filtered_vendors.iterrows():
