@@ -37,8 +37,8 @@ ENV/
 .DS_Store
 Thumbs.db
 
-# Streamlit
-.streamlit/
+# Streamlit (keep config.toml for theme, ignore secrets)
+.streamlit/secrets.toml
 
 # Data files (optional - uncomment if you don't want to track data)
 # data/*.csv

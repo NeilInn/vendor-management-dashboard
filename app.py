@@ -11,50 +11,118 @@ st.set_page_config(
     page_title="Vendor Management Dashboard",
     page_icon="📊",
     layout="wide",
-    initial_sidebar_state="expanded"
+    initial_sidebar_state="expanded",
+    menu_items={
+        'Get Help': None,
+        'Report a bug': None,
+        'About': "Vendor & Project Management Dashboard"
+    }
 )
 
-# Custom CSS for better styling
+# Custom CSS for Dark Mode styling
 st.markdown("""
     <style>
+    /* Dark mode background */
+    .stApp {
+        background-color: #0e1117;
+        color: #fafafa;
+    }
+    
+    /* Sidebar dark mode */
+    [data-testid="stSidebar"] {
+        background-color: #1a1d24;
+    }
+    
+    /* Main content area */
+    .main .block-container {
+        background-color: #0e1117;
+        color: #fafafa;
+    }
+    
+    /* Headers */
     .main-header {
         font-size: 2.5rem;
         font-weight: bold;
-        color: #1f77b4;
+        color: #58a6ff;
         margin-bottom: 0.5rem;
     }
+    
+    h1, h2, h3, h4, h5, h6 {
+        color: #fafafa !important;
+    }
+    
+    /* Metric cards */
     .metric-card {
-        background-color: #f0f2f6;
+        background-color: #1a1d24;
         padding: 1rem;
         border-radius: 0.5rem;
-        border-left: 4px solid #1f77b4;
+        border-left: 4px solid #58a6ff;
     }
+    
+    /* Status colors */
     .status-active {
-        color: #28a745;
+        color: #3fb950;
         font-weight: bold;
     }
     .status-onboarding {
-        color: #ffc107;
+        color: #d29922;
         font-weight: bold;
     }
     .status-inactive {
-        color: #dc3545;
+        color: #f85149;
         font-weight: bold;
     }
+    
+    /* Alert boxes */
     .alert-warning {
-        background-color: #fff3cd;
-        border-left: 4px solid #ffc107;
+        background-color: #4d3800;
+        border-left: 4px solid #d29922;
         padding: 1rem;
         border-radius: 0.5rem;
         margin: 1rem 0;
-        color: #856404;
+        color: #ffd700;
     }
     .alert-danger {
-        background-color: #f8d7da;
-        border-left: 4px solid #dc3545;
+        background-color: #4d1f1f;
+        border-left: 4px solid #f85149;
         padding: 1rem;
         border-radius: 0.5rem;
         margin: 1rem 0;
+        color: #ff6b6b;
+    }
+    
+    /* Dataframe styling */
+    .stDataFrame {
+        background-color: #1a1d24;
+    }
+    
+    /* Buttons */
+    .stButton button {
+        background-color: #238636;
+        color: white;
+        border: none;
+    }
+    .stButton button:hover {
+        background-color: #2ea043;
+    }
+    
+    /* Text and markdown */
+    p, li, label {
+        color: #c9d1d9 !important;
+    }
+    
+    /* Expanders */
+    .streamlit-expanderHeader {
+        background-color: #1a1d24;
+        color: #fafafa;
+    }
+    
+    /* Metrics */
+    [data-testid="stMetricValue"] {
+        color: #fafafa;
+    }
+    [data-testid="stMetricLabel"] {
+        color: #8b949e;
     }
     </style>
 """, unsafe_allow_html=True)
