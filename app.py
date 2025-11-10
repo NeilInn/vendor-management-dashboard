@@ -491,66 +491,70 @@ def show_contract_tracker():
     # Renewal Timeline Visualization
     st.subheader("Contract Renewal Timeline")
     
-    # Get active contracts from the original contracts_df merged with vendor names
-    # This ensures we have clean datetime objects
-    active_contracts_for_timeline = contracts_df[contracts_df['status'] == 'Active'].copy()
-    active_contracts_for_timeline = active_contracts_for_timeline.merge(
-        vendors_df[['vendor_id', 'vendor_name']], 
-        on='vendor_id', 
-        how='left'
-    )
+    # Simplified approach - build fresh timeline data
+    timeline_data = []
     
-    # Apply same filters as filtered_contracts
-    active_contracts_for_timeline = active_contracts_for_timeline[
-        (active_contracts_for_timeline['contract_type'].isin(contract_type_filter)) &
-        ((active_contracts_for_timeline['end_date'] - today).dt.days <= days_to_expiry)
-    ]
+    for _, contract in contracts_df.iterrows():
+        if contract['status'] == 'Active':
+            # Get vendor name
+            vendor_match = vendors_df[vendors_df['vendor_id'] == contract['vendor_id']]
+            if len(vendor_match) > 0:
+                vendor_name = vendor_match.iloc[0]['vendor_name']
+                
+                # Check if it matches current filters
+                if (contract['contract_type'] in contract_type_filter and
+                    (contract['end_date'] - today).days <= days_to_expiry):
+                    
+                    timeline_data.append({
+                        'contract_id': contract['contract_id'],
+                        'vendor_name': vendor_name,
+                        'start_date': contract['start_date'],
+                        'end_date': contract['end_date'],
+                        'contract_value': contract['contract_value'],
+                        'renewal_notice_days': int(contract['renewal_notice_days'])
+                    })
     
-    if len(active_contracts_for_timeline) > 0:
-        try:
-            fig = go.Figure()
+    if len(timeline_data) > 0:
+        fig = go.Figure()
+        
+        for contract_info in timeline_data:
+            # Calculate renewal date using timedelta
+            from datetime import timedelta
+            renewal_date = contract_info['end_date'] - timedelta(days=contract_info['renewal_notice_days'])
             
-            for _, contract in active_contracts_for_timeline.iterrows():
-                # Calculate renewal date properly using pandas Timedelta
-                renewal_date = contract['end_date'] - pd.Timedelta(days=contract['renewal_notice_days'])
-                
-                # Contract period
-                fig.add_trace(go.Scatter(
-                    x=[contract['start_date'], contract['end_date']],
-                    y=[contract['vendor_name'], contract['vendor_name']],
-                    mode='lines',
-                    line=dict(color='royalblue', width=10),
-                    showlegend=False,
-                    hovertemplate=f"{contract['contract_id']}<br>Value: ${contract['contract_value']:,.0f}<extra></extra>"
-                ))
-                
-                # Renewal notice marker
-                fig.add_trace(go.Scatter(
-                    x=[renewal_date],
-                    y=[contract['vendor_name']],
-                    mode='markers',
-                    marker=dict(color='orange', size=12, symbol='diamond'),
-                    showlegend=False,
-                    hovertemplate=f"Renewal Notice<br>{contract['renewal_notice_days']} days before expiry<extra></extra>"
-                ))
+            # Contract period line
+            fig.add_trace(go.Scatter(
+                x=[contract_info['start_date'], contract_info['end_date']],
+                y=[contract_info['vendor_name'], contract_info['vendor_name']],
+                mode='lines',
+                line=dict(color='royalblue', width=10),
+                showlegend=False,
+                hovertemplate=f"{contract_info['contract_id']}<br>Value: ${contract_info['contract_value']:,.0f}<extra></extra>"
+            ))
             
-            # Add today marker
-            fig.add_vline(x=today, line_dash="dash", line_color="red", 
-                         annotation_text="Today", annotation_position="top")
-            
-            fig.update_layout(
-                xaxis_title="Timeline",
-                yaxis_title="Vendor",
-                height=400,
-                hovermode='closest',
-                showlegend=False
-            )
-            
-            st.plotly_chart(fig, use_container_width=True)
-            
-        except Exception as e:
-            st.error(f"Error displaying timeline: {str(e)}")
-            st.info("Please try adjusting your filter settings. If the problem persists, the contract data may need to be refreshed.")
+            # Renewal notice marker
+            fig.add_trace(go.Scatter(
+                x=[renewal_date],
+                y=[contract_info['vendor_name']],
+                mode='markers',
+                marker=dict(color='orange', size=12, symbol='diamond'),
+                showlegend=False,
+                hovertemplate=f"Renewal Notice<br>{contract_info['renewal_notice_days']} days before expiry<extra></extra>"
+            ))
+        
+        # Add today marker
+        fig.add_vline(x=today, line_dash="dash", line_color="red", 
+                     annotation_text="Today", annotation_position="top")
+        
+        fig.update_layout(
+            xaxis_title="Timeline",
+            yaxis_title="Vendor",
+            height=400,
+            hovermode='closest',
+            showlegend=False
+        )
+        
+        st.plotly_chart(fig, use_container_width=True)
     else:
         st.info("No active contracts to display in timeline. Adjust filters to show active contracts.")
     
