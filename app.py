@@ -491,23 +491,22 @@ def show_contract_tracker():
     # Renewal Timeline Visualization
     st.subheader("Contract Renewal Timeline")
     
-    # Get active contracts from the ORIGINAL filtered_contracts before any formatting
-    active_contracts = filtered_contracts[filtered_contracts['status'] == 'Active'].copy()
+    # Get active contracts BEFORE any date formatting - need original datetime objects
+    # Re-filter from contracts_display to get clean data
+    timeline_contracts = contracts_display[
+        (contracts_display['status'] == 'Active') &
+        (contracts_display['contract_type'].isin(contract_type_filter)) &
+        ((contracts_display['end_date'] - today).dt.days <= days_to_expiry)
+    ].copy()
     
-    if len(active_contracts) > 0:
+    if len(timeline_contracts) > 0:
         try:
-            active_contracts['renewal_date'] = active_contracts.apply(
-                lambda x: x['end_date'] - timedelta(days=int(x['renewal_notice_days'])), axis=1
-            )
+            # Calculate renewal dates using datetime objects
+            timeline_contracts['renewal_date'] = timeline_contracts['end_date'] - pd.to_timedelta(timeline_contracts['renewal_notice_days'], unit='D')
             
             fig = go.Figure()
             
-            for _, contract in active_contracts.iterrows():
-                # Get contract value as number
-                contract_val = contract['contract_value']
-                if isinstance(contract_val, str):
-                    contract_val = float(contract_val.replace('$', '').replace(',', ''))
-                
+            for _, contract in timeline_contracts.iterrows():
                 # Contract period
                 fig.add_trace(go.Scatter(
                     x=[contract['start_date'], contract['end_date']],
@@ -515,7 +514,7 @@ def show_contract_tracker():
                     mode='lines',
                     line=dict(color='royalblue', width=10),
                     showlegend=False,
-                    hovertemplate=f"{contract['contract_id']}<br>Value: ${contract_val:,.0f}<extra></extra>"
+                    hovertemplate=f"{contract['contract_id']}<br>Value: ${contract['contract_value']:,.0f}<extra></extra>"
                 ))
                 
                 # Renewal notice marker
@@ -525,7 +524,7 @@ def show_contract_tracker():
                     mode='markers',
                     marker=dict(color='orange', size=12, symbol='diamond'),
                     showlegend=False,
-                    hovertemplate=f"Renewal Notice<br>{int(contract['renewal_notice_days'])} days before expiry<extra></extra>"
+                    hovertemplate=f"Renewal Notice<br>{contract['renewal_notice_days']} days before expiry<extra></extra>"
                 ))
             
             # Add today marker
@@ -535,7 +534,6 @@ def show_contract_tracker():
             fig.update_layout(
                 xaxis_title="Timeline",
                 yaxis_title="Vendor",
-                yaxis_title_text="Vendor",
                 height=400,
                 hovermode='closest',
                 showlegend=False
